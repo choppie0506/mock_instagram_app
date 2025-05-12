@@ -6,12 +6,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.pep_insta.presentation.LoginStatusManager
 
 @Composable
 fun AuthScreen(navController: NavController) {
+    val context = LocalContext.current
     var phoneNumber by remember { mutableStateOf("") }
     var showOtpField by remember { mutableStateOf(false) }
     var otp by remember { mutableStateOf("") }
@@ -58,7 +61,10 @@ fun AuthScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = { navController.navigate("main") },
+                onClick = {
+                    LoginStatusManager.setLoggedIn(context, true)
+                    navController.navigate("main")
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Verify OTP")
