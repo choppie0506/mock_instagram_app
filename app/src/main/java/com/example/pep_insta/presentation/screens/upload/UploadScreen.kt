@@ -16,17 +16,86 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import kotlinx.coroutines.delay
 
 @Composable
 fun UploadScreen() {
     var selectedVideoUri by remember { mutableStateOf<Uri?>(null) }
     var caption by remember { mutableStateOf("") }
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    var isUploading by remember { mutableStateOf(false) }
+    var uploadProgress by remember { mutableStateOf(0f) }
+    var uploadComplete by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    // Simulate upload process
+    LaunchedEffect(isUploading) {
+        if (isUploading) {
+            repeat(100) {
+                delay(50)
+                uploadProgress = (it + 1) / 100f
+                if (uploadProgress >= 1f) {
+                    isUploading = false
+                    uploadComplete = true
+                }
+            }
+        }
+    }
 
     val videoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         selectedVideoUri = uri
+    }
+
+    // Confirmation Dialog
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("Confirm Upload") },
+            text = { Text("Are you sure you want to upload this video?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showConfirmDialog = false
+                        isUploading = true
+                    }
+                ) {
+                    Text("Upload")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showConfirmDialog = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+    
+    // Upload Complete Dialog
+    if (uploadComplete) {
+        AlertDialog(
+            onDismissRequest = {
+                uploadComplete = false
+                selectedVideoUri = null
+                caption = ""
+            },
+            title = { Text("Upload Successful") },
+            text = { Text("Your video has been uploaded successfully!") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        uploadComplete = false
+                        selectedVideoUri = null
+                        caption = ""
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
     }
 
     Column(
@@ -103,20 +172,35 @@ fun UploadScreen() {
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    OutlinedButton(
-                        onClick = { selectedVideoUri = null }
+                
+                // Show upload progress when uploading
+                if (isUploading) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("Cancel")
+                        Text("Uploading video... ${(uploadProgress * 100).toInt()}%")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = uploadProgress,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
-                    Button(
-                        onClick = { /* TODO: Implement upload */ }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Upload")
+                        OutlinedButton(
+                            onClick = { selectedVideoUri = null }
+                        ) {
+                            Text("Cancel")
+                        }
+                        Button(
+                            onClick = { showConfirmDialog = true }
+                        ) {
+                            Text("Upload")
+                        }
                     }
                 }
             }
