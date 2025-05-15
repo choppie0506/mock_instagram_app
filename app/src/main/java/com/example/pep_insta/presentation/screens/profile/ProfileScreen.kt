@@ -1,6 +1,11 @@
 package com.example.pep_insta.presentation.screens.profile
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -14,7 +19,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,36 +42,44 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ProfileScreen() {
+    // State for dialog visibility
+    var showEditProfileDialog by remember { mutableStateOf(false) }
+    var showConfirmationDialog by remember { mutableStateOf(false) }
+    
     val user = remember {
-        UserProfile(
-            username = "rajatmishra",
-            name = "Rajat Mishra",
-            bio = "Android Developer | Tech Enthusiast | Coffee Lover ☕\nBuilding the future of mobile apps 🚀\nOpen to new opportunities 💼\n📍 San Francisco, CA\n🌐 rajatmishra.dev",
-            followers = 1234,
-            following = 567,
-            posts = 42,
-            profilePictureUrl = "https://picsum.photos/200/200?random=rajat",
-            achievements = listOf(
-                "Google Certified Android Developer",
-                "Top Contributor on Stack Overflow",
-                "Speaker at Android Dev Summit 2023"
-            ),
-            interests = listOf(
-                "Mobile Development",
-                "UI/UX Design",
-                "Machine Learning",
-                "Open Source"
-            ),
-            highlights = listOf(
-                Highlight("Android", "https://picsum.photos/200/200?random=android"),
-                Highlight("Compose", "https://picsum.photos/200/200?random=compose"),
-                Highlight("Kotlin", "https://picsum.photos/200/200?random=kotlin"),
-                Highlight("Projects", "https://picsum.photos/200/200?random=projects"),
-                Highlight("Travel", "https://picsum.photos/200/200?random=travel")
+        mutableStateOf(
+            UserProfile(
+                username = "rajatmishra",
+                name = "Rajat Mishra",
+                bio = "Android Developer | Tech Enthusiast | Coffee Lover ☕\nBuilding the future of mobile apps 🚀\nOpen to new opportunities 💼\n📍 San Francisco, CA\n🌐 rajatmishra.dev",
+                followers = 1234,
+                following = 567,
+                posts = 42,
+                profilePictureUrl = "https://picsum.photos/200/200?random=rajat",
+                achievements = listOf(
+                    "Google Certified Android Developer",
+                    "Top Contributor on Stack Overflow",
+                    "Speaker at Android Dev Summit 2023"
+                ),
+                interests = listOf(
+                    "Mobile Development",
+                    "UI/UX Design",
+                    "Machine Learning",
+                    "Open Source"
+                ),
+                highlights = listOf(
+                    Highlight("Android", "https://picsum.photos/200/200?random=android"),
+                    Highlight("Compose", "https://picsum.photos/200/200?random=compose"),
+                    Highlight("Kotlin", "https://picsum.photos/200/200?random=kotlin"),
+                    Highlight("Projects", "https://picsum.photos/200/200?random=projects"),
+                    Highlight("Travel", "https://picsum.photos/200/200?random=travel")
+                )
             )
         )
     }
@@ -87,8 +102,39 @@ fun ProfileScreen() {
             )
         }
     }
+    
+    // Edit Profile Dialog
+    if (showEditProfileDialog) {
+        EditProfileDialog(
+            user = user.value,
+            onDismiss = { showEditProfileDialog = false },
+            onSave = { updatedUser ->
+                user.value = updatedUser
+                showEditProfileDialog = false
+                showConfirmationDialog = true
+            }
+        )
+    }
+    
+    // Confirmation Dialog
+    if (showConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmationDialog = false },
+            title = { Text("Profile Updated") },
+            text = { Text("Your profile has been successfully updated.") },
+            confirmButton = {
+                Button(onClick = { showConfirmationDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
         // Profile Header
         Column(
             modifier = Modifier
@@ -102,23 +148,48 @@ fun ProfileScreen() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Profile Picture
-                AsyncImage(
-                    model = user.profilePictureUrl,
-                    contentDescription = "Profile Picture",
-                    modifier = Modifier
-                        .size(96.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
-                )
+                // Profile Picture with Edit option
+                Box(
+                    modifier = Modifier.size(96.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = user.value.profilePictureUrl,
+                        contentDescription = "Profile Picture",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(96.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
+                            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                            .clickable { showEditProfileDialog = true }
+                    )
+                    
+                    // Edit Icon Overlay
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(28.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape)
+                            .padding(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Profile Picture",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
 
                 // Stats
                 Row(
                     modifier = Modifier.weight(1f),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    StatItem(count = user.posts, label = "Posts")
-                    StatItem(count = user.followers, label = "Followers")
-                    StatItem(count = user.following, label = "Following")
+                    StatItem(count = user.value.posts, label = "Posts")
+                    StatItem(count = user.value.followers, label = "Followers")
+                    StatItem(count = user.value.following, label = "Following")
                 }
             }
 
@@ -126,13 +197,13 @@ fun ProfileScreen() {
 
             // Username and Name
             Text(
-                text = user.username,
+                text = user.value.username,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.Start)
             )
             Text(
-                text = user.name,
+                text = user.value.name,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.Start)
@@ -142,7 +213,7 @@ fun ProfileScreen() {
 
             // Bio
             Text(
-                text = user.bio,
+                text = user.value.bio,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.align(Alignment.Start),
                 textAlign = TextAlign.Start
@@ -156,7 +227,7 @@ fun ProfileScreen() {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedButton(
-                    onClick = { /* TODO: Navigate to edit profile */ },
+                    onClick = { showEditProfileDialog = true },
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("Edit Profile")
@@ -184,7 +255,7 @@ fun ProfileScreen() {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(horizontal = 4.dp)
             ) {
-                items(user.highlights) { highlight ->
+                items(user.value.highlights) { highlight ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.width(72.dp)
@@ -224,7 +295,7 @@ fun ProfileScreen() {
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    user.achievements.forEach { achievement ->
+                    user.value.achievements.forEach { achievement ->
                         Row(
                             modifier = Modifier.padding(vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -265,7 +336,7 @@ fun ProfileScreen() {
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        user.interests.forEach { interest ->
+                        user.value.interests.forEach { interest ->
                             Surface(
                                 shape = MaterialTheme.shapes.small,
                                 color = MaterialTheme.colorScheme.primaryContainer,
@@ -289,13 +360,145 @@ fun ProfileScreen() {
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
             contentPadding = PaddingValues(1.dp),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.height(800.dp) // Setting fixed height to work with scroll
         ) {
             items(videos) { video ->
                 VideoThumbnail(video = video)
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditProfileDialog(
+    user: UserProfile,
+    onDismiss: () -> Unit,
+    onSave: (UserProfile) -> Unit
+) {
+    val context = LocalContext.current
+    
+    // Editable state
+    var username by remember { mutableStateOf(user.username) }
+    var name by remember { mutableStateOf(user.name) }
+    var bio by remember { mutableStateOf(user.bio) }
+    var profilePictureUrl by remember { mutableStateOf(user.profilePictureUrl) }
+    
+    // Image picker
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            // In a real app, you would upload the image and get a URL
+            // For this dummy implementation, we'll just pretend we got a new URL
+            profilePictureUrl = "https://picsum.photos/200/200?random=${System.currentTimeMillis()}"
+        }
+    }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Profile") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            ) {
+                // Profile Picture
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box {
+                        AsyncImage(
+                            model = profilePictureUrl,
+                            contentDescription = "Profile Picture",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(120.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
+                                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                                .clickable { imagePickerLauncher.launch("image/*") }
+                        )
+                        
+                        IconButton(
+                            onClick = { imagePickerLauncher.launch("image/*") },
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                .size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "Change Picture",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Username
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text("Username") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Full Name
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Full Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Bio
+                OutlinedTextField(
+                    value = bio,
+                    onValueChange = { bio = it },
+                    label = { Text("Bio") },
+                    maxLines = 5,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onSave(
+                        user.copy(
+                            username = username,
+                            name = name,
+                            bio = bio,
+                            profilePictureUrl = profilePictureUrl
+                        )
+                    )
+                }
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable

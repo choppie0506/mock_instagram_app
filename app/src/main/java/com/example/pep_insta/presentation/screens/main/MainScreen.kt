@@ -14,6 +14,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.pep_insta.presentation.screens.discover.DiscoverScreen
 import com.example.pep_insta.presentation.screens.home.HomeScreen
 import com.example.pep_insta.presentation.screens.notifications.NotificationsScreen
+import com.example.pep_insta.presentation.screens.profile.ProfileScreen
 import com.example.pep_insta.presentation.screens.upload.UploadScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,8 +78,7 @@ fun MainScreen(navController: NavController) {
                 NotificationsScreen()
             }
             composable("profile") {
-                // TODO: Implement ProfileScreen
-                Text("Profile Screen")
+                ProfileScreen()
             }
         }
     }
